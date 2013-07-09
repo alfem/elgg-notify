@@ -10,7 +10,7 @@ INSTALLATION
 * You will need Python (tested with 2.7), and ConfigObj library (python-configobj package)
 * Copy the provided configuration file to your home directory, renaming it as .elgg-notify.conf
 * Edit configuration parameters to fit your elgg installation.
-* Place the script (elgg-notify) in /usr/local/bin and give execution permission
+* Place the script (elgg-notify) in /usr/local/bin and give it execution permission
 * Launch it when your desktop session (Gnome?) starts
 
 
