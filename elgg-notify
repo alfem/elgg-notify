@@ -1,5 +1,10 @@
 #!/usr/bin/python
 
+# ELGG Notify
+# Desktop notification daemon for elgg updates
+# Autor: Alfonso E.M. <alfonso@el-magnifico.org>
+# 9/Jul/2013
+
 import httplib
 import urllib
 import json
@@ -16,14 +21,15 @@ Notify.init('Elgg Notify')
 
 home = os.path.expanduser("~")
 
+# Configuration file
 try:
     CONF = ConfigObj(os.path.join(home,".elgg-notify.conf"))
 except:
     notification = Notify.Notification.new('ELGG', "Configuration file unavailable", 'dialog-information')
     notification.show()
 
+# Infinite loop
 while True:
-    print "Checking updates..."
     # HTTP connection
     conn = httplib.HTTPSConnection(CONF["host"])
     headers = {"Accept": "application/json"}
@@ -50,9 +56,16 @@ while True:
     for w in data["result"]:
         id = int(w["id"])
         if id > int(CONF["last_id"]):
-            text=parser.unescape("%s%s%s" % (w["subject_metadata"]["name"], w["string"],w["object_metadata"]["name"]))
-            print id, text
-            notification = Notify.Notification.new('ELGG', text, 'dialog-information')
+            who=w["subject_metadata"]["name"]
+            if w["object_metadata"]["name"] != "":
+               what=w["object_metadata"]["name"]
+               action=w["string"]
+            else:
+               what=w["object_metadata"]["description"] 
+               action=": "
+            text=parser.unescape("%s%s%s" % (who, action, what))
+#            print id, text
+            notification = Notify.Notification.new(CONF["title"], text, 'dialog-information')
             notification.show()
             if id > new_last_id:
                new_last_id = id
