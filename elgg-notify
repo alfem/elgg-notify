@@ -1,0 +1,66 @@
+#!/usr/bin/python
+
+import httplib
+import urllib
+import json
+import HTMLParser
+from configobj import ConfigObj
+import os.path
+import time
+
+from gi.repository import Notify
+parser = HTMLParser.HTMLParser()
+
+# Notification engine
+Notify.init('Elgg Notify')
+
+home = os.path.expanduser("~")
+
+try:
+    CONF = ConfigObj(os.path.join(home,".elgg-notify.conf"))
+except:
+    notification = Notify.Notification.new('ELGG', "Configuration file unavailable", 'dialog-information')
+    notification.show()
+
+while True:
+    print "Checking updates..."
+    # HTTP connection
+    conn = httplib.HTTPSConnection(CONF["host"])
+    headers = {"Accept": "application/json"}
+
+    # Request user security token
+    params=urllib.urlencode({"method":"auth.gettoken", "username": CONF["username"], "password": CONF["password"]})
+    conn.request("POST", "/services/api/rest/json/?"+params)
+    jsondata = conn.getresponse().read()
+    data = json.loads(jsondata)
+    token=data["result"]
+
+    # Request latest updates (river)
+    params=urllib.urlencode({"method":"site.river_feed", "auth_token": token, "api_key": CONF["apikey"], "limit": "10"})
+    conn.request("GET", "/services/api/rest/json/?"+params)
+    jsondata = conn.getresponse().read()
+
+    conn.close()
+
+    data = json.loads(jsondata)
+
+    new_last_id=0
+
+    # Loop thru posts and show notifications
+    for w in data["result"]:
+        id = int(w["id"])
+        if id > int(CONF["last_id"]):
+            text=parser.unescape("%s%s%s" % (w["subject_metadata"]["name"], w["string"],w["object_metadata"]["name"]))
+            print id, text
+            notification = Notify.Notification.new('ELGG', text, 'dialog-information')
+            notification.show()
+            if id > new_last_id:
+               new_last_id = id
+
+    if new_last_id != 0:
+       CONF["last_id"]=new_last_id
+       CONF.write()
+
+
+    time.sleep(int(CONF["interval"]))
+
